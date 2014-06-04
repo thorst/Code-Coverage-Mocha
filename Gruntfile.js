@@ -6,11 +6,7 @@ module.exports = function(grunt) {
   grunt.initConfig({
     // Metadata.
     pkg: grunt.file.readJSON("package.json"),
-    banner: "/*! <%= pkg.title || pkg.name %> - v<%= pkg.version %> - " +
-      "<%= grunt.template.today('yyyy-mm-dd') %>\n" +
-      "<%= pkg.homepage ? '* ' + pkg.homepage + '\\n' : '' %>" +
-      "* Copyright (c) <%= grunt.template.today('yyyy') %> <%= pkg.author.name %>;" +
-      " Licensed <%= _.pluck(pkg.licenses, 'type').join(', ') %> */\n",
+    banner: "",
     // Task configuration.
     concat: {
       options: {
@@ -47,7 +43,7 @@ module.exports = function(grunt) {
           ]
       },
     },
-	mocha: {
+	/*mocha: {
 		test: {
 			options: {
 				run: true,
@@ -56,7 +52,67 @@ module.exports = function(grunt) {
 			},
 			src: [ "test/index.html" ]
 		}
+	},*/
+	mochaTest: {
+      unit: {
+        options: {
+          reporter: "spec"
+        },
+        src: ["test/*.js"]
+      }
 	},
+	// start - code coverage settings
+
+    env: {
+      coverage: {
+        APP_DIR_FOR_CODE_COVERAGE: "../test/coverage/instrument/app/"
+      }
+    },
+
+
+    clean: {
+      coverage: {
+        src: ["test/coverage/"]
+      }
+    },
+
+
+    copy: {
+      views: {
+        expand: true,
+        flatten: true,
+        src: ["app/views/*"],
+        dest: "test/coverage/instrument/app/views"
+      }
+    },
+
+
+    instrument: {
+      files: "app/*.js",
+      options: {
+        lazy: true,
+        basePath: "test/coverage/instrument/"
+      }
+    },
+
+
+    storeCoverage: {
+      options: {
+        dir: "test/coverage/reports"
+      }
+    },
+
+
+    makeReport: {
+      src: "test/coverage/reports/**/*.json",
+      options: {
+        type: "lcov",
+        dir: "test/coverage/reports",
+        print: "detail"
+      }
+    },
+
+    // end - code coverage settings
 	
     coveralls: {
 		options: {
@@ -108,15 +164,21 @@ module.exports = function(grunt) {
   // These plugins provide necessary tasks.
   grunt.loadNpmTasks("grunt-contrib-jshint");
   grunt.loadNpmTasks("grunt-coveralls");
-  grunt.loadNpmTasks("grunt-mocha");
+  //grunt.loadNpmTasks("grunt-mocha");
+  grunt.loadNpmTasks("grunt-mocha-test");
   grunt.loadNpmTasks("grunt-istanbul");
   grunt.loadNpmTasks("grunt-contrib-concat");
   grunt.loadNpmTasks("grunt-contrib-uglify");
   grunt.loadNpmTasks("grunt-contrib-watch");
+  grunt.loadNpmTasks("grunt-contrib-clean");
+  grunt.loadNpmTasks("grunt-contrib-copy");
+  grunt.loadNpmTasks("grunt-nodemon");
+  grunt.loadNpmTasks("grunt-concurrent");
+  grunt.loadNpmTasks("grunt-env");
 
   // Default task.
   
-  grunt.registerTask("test",["jshint", "mocha"]);
+  grunt.registerTask("test",["jshint", "mochaTest:unit"]);
   grunt.registerTask("default", ["test", "concat", "uglify"]);
-
+  grunt.registerTask("coverage", ["jshint", "copy:views", "env:coverage", "instrument", "mochaTest:unit", "storeCoverage", "makeReport"]);
 };
